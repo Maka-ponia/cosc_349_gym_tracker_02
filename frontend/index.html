@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Gym Workout Tracker</title>
+</head>
+<body>
+
+    <h1>Gym Workout Tracker</h1>
+
+<h2>Add Workout</h2>
+
+<form id="workout-form">
+    <label>
+        Exercise:
+        <input type="text" id="exercise_name" required>
+    </label>
+
+    <br><br>
+
+    <label>
+        Sets:
+        <input type="number" id="sets" min="1" required>
+    </label>
+
+    <br><br>
+
+    <label>
+        Reps:
+        <input type="number" id="reps" min="1" required>
+    </label>
+
+    <br><br>
+
+    <label>
+        Weight:
+        <input type="number" id="weight" min="0" step="0.1" required>
+    </label>
+
+    <br><br>
+
+    <button type="submit">Add Workout</button>
+</form>
+
+<hr>
+
+<div id="workouts">
+    Loading workouts...
+</div>
+
+    <script>
+
+    function editWorkout(id, exerciseName, sets, reps, weight) {
+
+        const newExerciseName =
+            prompt("Exercise name:", exerciseName);
+
+        const newSets =
+            prompt("Sets:", sets);
+
+        const newReps =
+            prompt("Reps:", reps);
+
+        const newWeight =
+            prompt("Weight:", weight);
+
+        if (
+            newExerciseName === null ||
+            newSets === null ||
+            newReps === null ||
+            newWeight === null
+        ) {
+            return;
+        }
+
+        const updatedWorkout = {
+            exercise_name: newExerciseName,
+            sets: Number(newSets),
+            reps: Number(newReps),
+            weight: Number(newWeight)
+        };
+
+        fetch(`/api/workouts/${id}`, {
+            method: "PUT",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify(updatedWorkout)
+        })
+        .then(response => response.json())
+        .then(() => {
+            loadWorkouts();
+        })
+        .catch(error => {
+            console.error(error);
+        });
+    }
+
+    function loadWorkouts() {
+        fetch("/api/workouts")
+            .then(response => response.json())
+            .then(workouts => {
+                const workoutContainer =
+                    document.getElementById("workouts");
+
+                workoutContainer.innerHTML = "";
+
+                const totalVolume = workouts.reduce(
+                    (sum, workout) => sum + workout.volume, 0);
+
+                const totalElement = document.createElement("h2");
+
+                totalElement.textContent =
+                    `Total Workout Volume: ${totalVolume} kg`;
+
+                workoutContainer.appendChild(totalElement);
+
+                workouts.forEach(workout => {
+                    const workoutElement =
+                        document.createElement("div");
+
+                    workoutElement.innerHTML = `
+                        <h2>${workout.exercise_name}</h2>
+                        <p>
+                            ${workout.sets} sets ×
+                            ${workout.reps} reps ×
+                            ${workout.weight} kg
+                        </p>
+                        <p>Volume: ${workout.volume} kg</p>
+
+                        <button onclick="editWorkout(
+                            ${workout.id},
+                            '${workout.exercise_name}',
+                            ${workout.sets},
+                            ${workout.reps},
+                            ${workout.weight}
+                        )">
+                            Edit
+                        </button>
+
+                        <hr>
+                    `;
+
+                    workoutContainer.appendChild(workoutElement);
+                });
+            })
+            .catch(error => {
+                console.error(error);
+
+                document.getElementById("workouts").innerHTML =
+                    "Unable to load workouts.";
+            });
+    }
+
+
+    document.getElementById("workout-form")
+        .addEventListener("submit", function(event) {
+
+            event.preventDefault();
+
+            const workout = {
+                exercise_name:
+                    document.getElementById("exercise_name").value,
+
+                sets:
+                    Number(document.getElementById("sets").value),
+
+                reps:
+                    Number(document.getElementById("reps").value),
+
+                weight:
+                    Number(document.getElementById("weight").value)
+            };
+
+            fetch("/api/workouts", {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify(workout)
+            })
+            .then(response => response.json())
+            .then(() => {
+                document.getElementById("workout-form").reset();
+
+                loadWorkouts();
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        });
+
+
+    loadWorkouts();
+</script>
+
+</body>
+</html>
