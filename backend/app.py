@@ -1,8 +1,33 @@
 from flask import Flask, request
 from flask_cors import CORS
 import psycopg2
+import os
 
 app = Flask(__name__)
+
+def initialise_database():
+    connection = psycopg2.connect(
+        host=os.environ["DB_HOST"],
+        database="gymtracker",
+        user="gymuser",
+        password=os.environ["DB_PASSWORD"]
+    )
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS workouts (
+            id SERIAL PRIMARY KEY,
+            exercise_name VARCHAR(255) NOT NULL,
+            sets INTEGER NOT NULL,
+            reps INTEGER NOT NULL,
+            weight NUMERIC NOT NULL
+        )
+    """)
+
+    connection.commit()
+    cursor.close()
+    connection.close()
 
 @app.route("/")
 def home():
@@ -13,10 +38,10 @@ def home():
 def get_workouts():
 
     connection = psycopg2.connect(
-        host="192.168.56.12",
+        host=os.environ["DB_HOST"],
         database="gymtracker",
         user="gymuser",
-        password="gympassword"
+        password=os.environ["DB_PASSWORD"]
     )
 
     cursor = connection.cursor()
@@ -54,10 +79,10 @@ def add_workout():
     weight = float(data["weight"])
 
     connection = psycopg2.connect(
-        host="192.168.56.12",
+        host=os.environ["DB_HOST"],
         database="gymtracker",
         user="gymuser",
-        password="gympassword"
+        password=os.environ["DB_PASSWORD"]
     )
 
     cursor = connection.cursor()
@@ -96,10 +121,10 @@ def update_workout(workout_id):
     weight = float(data["weight"])
 
     connection = psycopg2.connect(
-        host="192.168.56.12",
+        host=os.environ["DB_HOST"],
         database="gymtracker",
         user="gymuser",
-        password="gympassword"
+        password=os.environ["DB_PASSWORD"]
     )
 
     cursor = connection.cursor()
@@ -130,4 +155,5 @@ def update_workout(workout_id):
     }
 
 if __name__ == "__main__":
+    initialise_database()
     app.run(host="0.0.0.0", port=5000)
