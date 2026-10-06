@@ -1,13 +1,14 @@
-param (
-    [Parameter(Mandatory=$true)]
-    [string]$FrontendIp
-)
+$frontendUrl = terraform output -raw frontend_url
 
-$baseUrl = "http://$FrontendIp/api"
+if (-not $frontendUrl) {
+    Write-Host "FAIL: Could not get frontend URL from Terraform."
+    exit 1
+}
+
+$baseUrl = "$frontendUrl/api"
 
 Write-Host "Testing Gym Tracker at $baseUrl"
 
-# Create a unique test workout
 $testName = "CloudTest-" + (Get-Date -Format "yyyyMMddHHmmss")
 
 $body = @{
@@ -34,7 +35,6 @@ catch {
 
 Write-Host "Workout added."
 
-# Read workouts back
 try {
     $workouts = Invoke-RestMethod `
         -Uri "$baseUrl/workouts" `
@@ -46,7 +46,6 @@ catch {
     exit 1
 }
 
-# Check that our test workout came back
 $found = $workouts | Where-Object {
     $_.exercise_name -eq $testName
 }
