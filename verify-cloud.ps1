@@ -21,11 +21,11 @@ $body = @{
 Write-Host "Adding test workout: $testName"
 
 try {
-    Invoke-RestMethod `
+    $createdWorkout = Invoke-RestMethod `
         -Uri "$baseUrl/workouts" `
         -Method Post `
         -ContentType "application/json" `
-        -Body $body | Out-Null
+        -Body $body
 }
 catch {
     Write-Host "FAIL: Could not add workout."
@@ -50,11 +50,28 @@ $found = $workouts | Where-Object {
     $_.exercise_name -eq $testName
 }
 
-if ($found) {
-    Write-Host "PASS: Workout was written and read back successfully."
-    exit 0
-}
-else {
+if (-not $found) {
     Write-Host "FAIL: Workout was not found after creation."
     exit 1
 }
+
+Write-Host "PASS: Workout was written and read back successfully."
+
+Write-Host "Cleaning up test workout..."
+
+try {
+    Invoke-RestMethod `
+        -Uri "$baseUrl/workouts/$($createdWorkout.id)" `
+        -Method Delete | Out-Null
+
+    Write-Host "Test workout removed."
+}
+catch {
+    Write-Host "WARNING: Verification passed, but the test workout could not be removed."
+    Write-Host $_
+    exit 1
+}
+
+Write-Host ""
+Write-Host "All verification checks passed."
+exit 0

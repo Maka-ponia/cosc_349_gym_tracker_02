@@ -1,21 +1,24 @@
 from flask import Flask, request
-from flask_cors import CORS
-import psycopg2
-import os
 import boto3
+import os
+import psycopg2
 
 app = Flask(__name__)
 
 cloudwatch = boto3.client("cloudwatch", region_name="us-east-1")
 
-def initialise_database():
-    connection = psycopg2.connect(
+
+def get_database_connection():
+    return psycopg2.connect(
         host=os.environ["DB_HOST"],
         database="gymtracker",
         user="gymuser",
         password=os.environ["DB_PASSWORD"]
     )
 
+
+def initialise_database():
+    connection = get_database_connection()
     cursor = connection.cursor()
 
     cursor.execute("""
@@ -29,7 +32,11 @@ def initialise_database():
     """)
 
     connection.commit()
+    cursor.close()
+    connection.close()
 
+
+def record_workout_added():
     try:
         cloudwatch.put_metric_data(
             Namespace="GymTracker",
@@ -44,8 +51,6 @@ def initialise_database():
     except Exception as error:
         print(f"CloudWatch metric failed: {error}")
 
-    cursor.close()
-    connection.close()
 
 @app.route("/")
 def home():
@@ -54,14 +59,7 @@ def home():
 
 @app.route("/workouts")
 def get_workouts():
-
-    connection = psycopg2.connect(
-        host=os.environ["DB_HOST"],
-        database="gymtracker",
-        user="gymuser",
-        password=os.environ["DB_PASSWORD"]
-    )
-
+    connection = get_database_connection()
     cursor = connection.cursor()
 
     cursor.execute(
@@ -87,6 +85,7 @@ def get_workouts():
 
     return workouts
 
+
 @app.route("/workouts", methods=["POST"])
 def add_workout():
     data = request.get_json()
@@ -96,13 +95,7 @@ def add_workout():
     reps = int(data["reps"])
     weight = float(data["weight"])
 
-    connection = psycopg2.connect(
-        host=os.environ["DB_HOST"],
-        database="gymtracker",
-        user="gymuser",
-        password=os.environ["DB_PASSWORD"]
-    )
-
+    connection = get_database_connection()
     cursor = connection.cursor()
 
     cursor.execute(
@@ -120,6 +113,8 @@ def add_workout():
     cursor.close()
     connection.close()
 
+    record_workout_added()
+
     return {
         "id": workout_id,
         "exercise_name": exercise_name,
@@ -128,6 +123,7 @@ def add_workout():
         "weight": weight,
         "volume": sets * reps * weight
     }, 201
+
 
 @app.route("/workouts/<int:workout_id>", methods=["PUT"])
 def update_workout(workout_id):
@@ -138,13 +134,7 @@ def update_workout(workout_id):
     reps = int(data["reps"])
     weight = float(data["weight"])
 
-    connection = psycopg2.connect(
-        host=os.environ["DB_HOST"],
-        database="gymtracker",
-        user="gymuser",
-        password=os.environ["DB_PASSWORD"]
-    )
-
+    connection = get_database_connection()
     cursor = connection.cursor()
 
     cursor.execute(
@@ -171,6 +161,22 @@ def update_workout(workout_id):
         "weight": weight,
         "volume": sets * reps * weight
     }
+
+@app.route("/workouts/<int:workout_id>", methods=["DELETE"])
+def delete_workout(workout_id):
+    connection = get_database_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "DELETE FROM workouts WHERE id = %s",
+        (workout_id,)
+    )
+
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+    return {"message": "Workout deleted"}
 
 if __name__ == "__main__":
     initialise_database()

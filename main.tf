@@ -333,3 +333,11 @@ resource "aws_eip_association" "frontend" {
 output "frontend_url" {
   value = "http://${aws_eip.frontend.public_ip}"
 }
+
+output "frontend_instance_id" {
+  value = aws_instance.frontend.id
+}
+
+output "backend_instance_id" {
+  value = aws_instance.backend.id
+}
