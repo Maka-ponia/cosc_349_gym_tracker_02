@@ -181,6 +181,7 @@ resource "aws_instance" "backend" {
   subnet_id                   = aws_subnet.backend.id
   vpc_security_group_ids      = [aws_security_group.backend.id]
   associate_public_ip_address = true
+  iam_instance_profile = "LabInstanceProfile"
 
   user_data_replace_on_change = true
 
@@ -188,8 +189,7 @@ resource "aws_instance" "backend" {
     #!/bin/bash
 
     apt-get update
-    apt-get install -y python3 python3-pip python3-flask python3-psycopg2 python3-flask-cors
-
+    apt-get install -y python3 python3-pip python3-flask python3-psycopg2 python3-flask-cors python3-boto3
     mkdir -p /opt/gymtracker
 
     cat > /opt/gymtracker/app.py <<'PYTHON'

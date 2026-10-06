@@ -2,8 +2,11 @@ from flask import Flask, request
 from flask_cors import CORS
 import psycopg2
 import os
+import boto3
 
 app = Flask(__name__)
+
+cloudwatch = boto3.client("cloudwatch", region_name="us-east-1")
 
 def initialise_database():
     connection = psycopg2.connect(
@@ -26,6 +29,21 @@ def initialise_database():
     """)
 
     connection.commit()
+
+    try:
+        cloudwatch.put_metric_data(
+            Namespace="GymTracker",
+            MetricData=[
+                {
+                    "MetricName": "WorkoutAdded",
+                    "Value": 1,
+                    "Unit": "Count"
+                }
+            ]
+        )
+    except Exception as error:
+        print(f"CloudWatch metric failed: {error}")
+
     cursor.close()
     connection.close()
 
