@@ -64,6 +64,24 @@ When a workout is successfully added, the backend publishes the custom metric:
 
 This provides a record of successful workout creation activity.
 
+### Viewing CloudWatch Metrics
+
+The application uses Amazon CloudWatch to monitor successful workout additions through the custom `WorkoutAdded` metric.
+
+To view this metric:
+
+1. Open the AWS Management Console and navigate to **CloudWatch**.
+2. In the left navigation menu, select **Metrics → All metrics**.
+3. Select the custom namespace `GymTracker`.
+4. Select the `WorkoutAdded` metric.
+5. View the metric graph to observe workout additions over time.
+
+To generate new metric data, open the Gym Workout Tracker and add a workout. The Backend automatically publishes a metric value of `1` when a workout is successfully added to the database.
+
+The `WorkoutAdded` metric can also be triggered by running `verify-cloud.ps1`, since the verification script creates a test workout.
+
+CloudWatch may take a few minutes to display newly published metric data.
+
 ## Infrastructure as Code
 
 The AWS infrastructure is defined in `main.tf` and managed using Terraform.
@@ -134,9 +152,17 @@ The RDS database can take several minutes to provision during a fresh deployment
 
 ## Accessing the Application
 
-The frontend uses an Elastic IP so that its public address remains stable while the current deployment exists.
+The application can be accessed by running the `start-cloud.ps1` script:
 
-The current frontend URL can be retrieved with:
+```powershell
+.\start-cloud.ps1
+```
+
+The script starts the Frontend and Backend EC2 instances if they are stopped, waits for the application to become available, and automatically opens the Gym Workout Tracker in the user's default web browser.
+
+This removes the need for the user to manually retrieve the Frontend's public IP address or enter the application's URL.
+
+Alternatively, the Frontend URL can be retrieved manually using:
 
 ```powershell
 terraform output -raw frontend_url
@@ -147,7 +173,8 @@ The application allows users to:
 - View stored workouts
 - Add new workouts
 - Edit existing workouts
-- View calculated workout volume
+- Delete workouts
+- View calculated workout volumes and total workout volume
 
 ## Starting an Existing Deployment
 
